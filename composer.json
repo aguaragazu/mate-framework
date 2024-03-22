@@ -1,0 +1,41 @@
+{
+    "name": "aguaragazu/mate-framework",
+    "description": "Mate - A simple PHP Framework inspired by Laravel",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Mate\\": "./src/Mate/"
+        },
+        "files": [
+            "./src/Mate/Helpers/app.php",
+            "./src/Mate/Helpers/array.php",
+            "./src/Mate/Helpers/auth.php",
+            "./src/Mate/Helpers/http.php",
+            "./src/Mate/Helpers/session.php",
+            "./src/Mate/Helpers/string.php"
+        ]
+    },
+    "authors": [
+        {
+            "name": "Jose C Gallo",
+            "email": "aguara_gazu@yahoo.com.ar"
+        }
+    ],
+    "require": {
+        "vlucas/phpdotenv": "^5.4",
+        "symfony/console": "^6.0"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Mate\\Tests\\": "./tests"
+        }
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.8",
+        "phpunit/phpunit": "^9.5"
+    },
+    "scripts": {
+        "php-cs-fixer": "php-cs-fixer fix --diff",
+        "tests": "phpunit --colors=always --testdox -v tests"
+    }
+}
