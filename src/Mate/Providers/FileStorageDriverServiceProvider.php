@@ -12,7 +12,7 @@ class FileStorageDriverServiceProvider {
             "disk" => singleton(
                 FileStorageDriver::class,
                 fn () => new DiskFileStorage(
-                    App::$ROOT . "/storage",
+                    App::getRoot() . "/storage",
                     "storage",
                     config("app.url")
                 )

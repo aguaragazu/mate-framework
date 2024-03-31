@@ -23,9 +23,18 @@ use Throwable;
  */
 class App {
     /**
+     * The Laravel framework version.
+     *
+     * @var string
+     */
+    const VERSION = '1.0.0';
+
+    /**
      * Root directory of the user source code.
      */
-    public static string $ROOT;
+    private static string $ROOT;
+
+    private static $CONFIG;
 
     /**
      * Router instance.
@@ -52,6 +61,29 @@ class App {
      */
     public Session $session;
 
+    public static function getRoot(): string
+    {
+        if (!self::$ROOT) {
+            self::$ROOT = getcwd();
+        }
+
+        return self::$ROOT;
+    }
+
+    public static function setRoot(string $root): void
+    {
+        self::$ROOT = $root;
+    }
+
+    public static function getConfig(): Config
+    {
+        if (!self::$CONFIG) {
+            self::$CONFIG = new Config(self::getRoot() . '/config');
+        }
+
+        return self::$CONFIG;
+    }
+
     /**
      * Create a new app instance.
      *
@@ -63,7 +95,7 @@ class App {
             return app(self::class);
         }
 
-        self::$ROOT = $root;
+        self::setRoot($root);
 
         return singleton(self::class)
             ->loadConfig()
@@ -77,8 +109,8 @@ class App {
      * Load Mate configuration.
      */
     protected function loadConfig() {
-        Dotenv::createImmutable(self::$ROOT)->load();
-        Config::load(self::$ROOT."/config");
+        Dotenv::createImmutable(self::getRoot())->load();
+        Config::load(self::getRoot()."/config");
 
         return $this;
     }
@@ -182,5 +214,15 @@ class App {
      */
     public function abort(Response $response) {
         $this->terminate($response);
+    }
+
+    /**
+     * Get the version number of the application.
+     *
+     * @return string
+     */
+    public function version()
+    {
+        return static::VERSION;
     }
 }

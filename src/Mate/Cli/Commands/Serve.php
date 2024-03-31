@@ -22,7 +22,7 @@ class Serve extends Command {
     protected function execute(InputInterface $input, OutputInterface $output) {
         $host = $input->getOption("host");
         $port = $input->getOption("port");
-        $dir = App::$ROOT . "/public";
+        $dir = App::getRoot() . "/public";
 
         $output->writeln("<info>Starting development server on $host:$port</info>");
         shell_exec("php -S $host:$port $dir/index.php");

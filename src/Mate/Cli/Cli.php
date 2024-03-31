@@ -27,8 +27,8 @@ class Cli {
      * @return self
      */
     public static function bootstrap(string $root): self {
-        App::$ROOT = $root;
-        Dotenv::createImmutable(App::$ROOT)->load();
+        App::setRoot($root);
+        Dotenv::createImmutable(App::getRoot())->load();
         Config::load("$root/config");
 
         (new DatabaseDriverServiceProvider())->registerServices();

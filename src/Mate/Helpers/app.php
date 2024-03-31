@@ -51,7 +51,7 @@ function debug(...$args) {
  * Resources directory containing views, css, and other static files.
  */
 function resourcesDirectory() {
-    return App::$ROOT . "/resources";
+    return App::getRoot() . "/resources";
 }
 
 /**
