@@ -2,12 +2,7 @@
 
 namespace Mate\Providers;
 
-/**
- * Service provider interface.
- */
-interface ServiceProvider {
-    /**
-     * Register services.
-     */
+interface ServiceProvider
+{
     public function registerServices();
 }

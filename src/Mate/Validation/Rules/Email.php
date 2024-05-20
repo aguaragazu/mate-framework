@@ -2,12 +2,19 @@
 
 namespace Mate\Validation\Rules;
 
-class Email implements ValidationRule {
-    public function message(): string {
-        return "Email format is invalid";
+class Email implements ValidationRule
+{
+    public function message(): string
+    {
+        return "Email has invalid format";
     }
 
-    public function isValid($field, &$data): bool {
+    public function isValid(string $field, array $data): bool
+    {
+        if (!array_key_exists($field, $data)) {
+            return false;
+        }
+
         $email = strtolower(trim($data[$field]));
 
         $split = explode("@", $email);

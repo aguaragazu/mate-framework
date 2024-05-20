@@ -2,19 +2,17 @@
 
 use Mate\Session\Session;
 
-/**
- * Get session instance.
- */
-function session(): Session {
+function session(): Session
+{
     return app()->session;
 }
 
-/**
- * Get flashed error.
- */
-function error(string $key) {
-    $errors = session()->get('errors', [])[$key] ?? [];
+function error(string $field)
+{
+    $errors = session()->get('_errors', [])[$field] ?? [];
+
     $keys = array_keys($errors);
+
     if (count($keys) > 0) {
         return $errors[$keys[0]];
     }
@@ -22,9 +20,7 @@ function error(string $key) {
     return null;
 }
 
-/**
- * Old submitted data.
- */
-function old(string $key) {
-    return session()->get('old', [])[$key] ?? null;
+function old(string $field)
+{
+    return session()->get('_old', [])[$field] ?? null;
 }

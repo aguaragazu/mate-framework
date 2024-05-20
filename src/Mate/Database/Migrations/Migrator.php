@@ -2,72 +2,71 @@
 
 namespace Mate\Database\Migrations;
 
-use Mate\Database\DB;
+use Mate\Database\Drivers\DatabaseDriver;
 use Symfony\Component\Console\Output\ConsoleOutput;
 
-/**
- * Run and reverse migrations.
- */
-class Migrator {
+class Migrator
+{
     private ConsoleOutput $output;
 
-    /**
-     * Build migrator.
-     * @param string $migrationsDirectory
-     * @param string $templatesDirectory
-     * @param bool $logProgress
-     * @return self
-     */
     public function __construct(
         private string $migrationsDirectory,
         private string $templatesDirectory,
+        private DatabaseDriver $driver,
         private bool $logProgress = true,
     ) {
         $this->migrationsDirectory = $migrationsDirectory;
         $this->templatesDirectory = $templatesDirectory;
-        $this->logProgress = $logProgress;
+        $this->driver = $driver;
         $this->output = new ConsoleOutput();
     }
 
-    private function log(string $message) {
+    private function log(string $message)
+    {
         if ($this->logProgress) {
-            $this->output->write("<info>$message</info>");
+            $this->output->writeln("<info>$message</info>");
         }
     }
 
-    private function createMigrationsTableIfNotExists() {
-        DB::statement("CREATE TABLE IF NOT EXISTS migrations (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(256))");
+    private function createMigrationsTableIfNotExists()
+    {
+        $this->log("Creating migrations table");
+        $this->driver->query("CREATE TABLE IF NOT EXISTS migrations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, 
+            name VARCHAR(256)
+        )");
     }
 
-    /**
-     * Run migrations.
-     */
-    public function migrate() {
+    public function migrate()
+    {
         $this->createMigrationsTableIfNotExists();
-        $migrated = DB::statement("SELECT * FROM migrations");
+        $this->log("Searching for migrations in " . $this->migrationsDirectory);
+        $migrated = $this->driver->query("SELECT * FROM migrations");
         $migrations = glob("$this->migrationsDirectory/*.php");
+        $count = is_countable($migrated) ? count($migrated) : 0;
 
-        if (count($migrated) >= count($migrations)) {
-            $this->log("Nothing to migrate" . PHP_EOL);
+        $this->log("Found $count migrated");
+        if ($count >= count($migrations)) {
+            $this->log("<comment>Nothing to migrate</comment>");
             return;
         }
+        $this->log("Found $count migrations to migrate");
 
-        foreach (array_slice($migrations, count($migrated)) as $file) {
+        $this->log("Migrating...");
+        foreach (array_slice($migrations, $count) as $file) {
             $migration = require $file;
             $migration->up();
             $name = basename($file);
-            DB::statement("INSERT INTO migrations (name) VALUES (?)", [$name]);
-            $this->log("Migrated => " . $name . PHP_EOL);
+            $this->driver->statement("INSERT INTO migrations (name) VALUES (?)", [$name]);
+            $this->log("<info>Migrated => $name</info>");
         }
+        $this->log("Migration complete");
     }
 
-    /**
-     * Reverse migrations.
-     * @param int $steps Number of migrations to reverse, all by default.
-     */
-    public function rollback(?int $steps = null) {
+    public function rollback(?int $steps = null)
+    {
         $this->createMigrationsTableIfNotExists();
-        $migrated = DB::statement("SELECT * FROM migrations");
+        $migrated = $this->driver->statement("SELECT * FROM migrations");
 
         $pending = count($migrated);
 
@@ -86,21 +85,31 @@ class Migrator {
             $migration = require $file;
             $migration->down();
             $name = basename($file);
-            DB::statement("DELETE FROM migrations WHERE name = ?", [$name]);
-            $this->log("Rollback => " . substr($name, 18) . PHP_EOL);
+            $this->driver->statement("DELETE FROM migrations WHERE name = ?", [$name]);
+            $this->log("Rollback => $name");
             if (--$steps == 0) {
                 break;
             }
         }
     }
 
-    /**
-     * Create new migration.
-     * @param string $migrationName
-     * @return string file name of the migration
-     */
-    public function make(string $migrationName): string {
+    public function make(string $migrationName): string
+    {
         $migrationName = snake_case($migrationName);
+
+        $template = file_get_contents("$this->templatesDirectory/migration.php");
+
+        if (preg_match("/create_.*_table/", $migrationName)) {
+            $table = preg_replace_callback("/create_(.*)_table/", fn ($match) => $match[1], $migrationName);
+            $template = str_replace('$UP', "CREATE TABLE $table (id INT AUTO_INCREMENT PRIMARY KEY)", $template);
+            $template = str_replace('$DOWN', "DROP TABLE $table", $template);
+        } elseif (preg_match("/.*(from|to)_(.*)_table/", $migrationName)) {
+            $table = preg_replace_callback("/.*(from|to)_(.*)_table/", fn ($match) => $match[2], $migrationName);
+            $template = preg_replace('/\$UP|\$DOWN/', "ALTER TABLE $table", $template);
+        } else {
+            $template = preg_replace_callback("/DB::statement.*/", fn ($match) => "// {$match[0]}", $template);
+        }
+
         $date = date("Y_m_d");
         $id = 0;
 
@@ -110,24 +119,12 @@ class Migrator {
             }
         }
 
-        $template = template("migration", $this->templatesDirectory);
+        $fileName = sprintf("%s_%06d_%s.php", $date, $id, $migrationName);
 
-        if (preg_match('/create_.*_table/', $migrationName)) {
-            $table = preg_replace_callback("/create_(.*)_table/", fn ($match) => $match[1], $migrationName);
-            $template = str_replace('$UP', "CREATE TABLE $table (id INT AUTO_INCREMENT PRIMARY KEY)", $template);
-            $template = str_replace('$DOWN', "DROP TABLE $table", $template);
-        } elseif (preg_match('/.*(from|to)_(.*)_table/', $migrationName)) {
-            $table = preg_replace_callback('/.*(from|to)_(.*)_table/', fn ($match) => $match[2], $migrationName);
-            $template = preg_replace('/\$UP|\$DOWN/', "ALTER TABLE $table", $template);
-        } else {
-            $template = preg_replace_callback('/DB::statement.*/', fn ($match) => "// {$match[0]}", $template);
-        }
+        file_put_contents("$this->migrationsDirectory/$fileName", $template);
 
-        $migrationName = sprintf("%s_%06d_%s", $date, $id, $migrationName);
-        file_put_contents("$this->migrationsDirectory/$migrationName.php", $template);
+        $this->log("Created migrations => $fileName");
 
-        $this->log("Migration created => $migrationName.php");
-
-        return "$migrationName.php";
+        return $fileName;
     }
 }

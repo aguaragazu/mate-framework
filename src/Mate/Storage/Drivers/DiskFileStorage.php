@@ -7,7 +7,8 @@ use Mate\App;
 /**
  * Server disk storage.
  */
-class DiskFileStorage implements FileStorageDriver {
+class DiskFileStorage implements FileStorageDriver
+{
     /**
      * Directory where files should be stored.
      *
@@ -34,16 +35,18 @@ class DiskFileStorage implements FileStorageDriver {
      *
      * @param string $storageDirectory
      */
-    public function __construct(string $storageDirectory, string $appUrl, string $storageUri) {
+    public function __construct(string $storageDirectory, string $storageUri, string $appUrl)
+    {
         $this->storageDirectory = $storageDirectory;
-        $this->appUrl = $appUrl;
         $this->storageUri = $storageUri;
+        $this->appUrl = $appUrl;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function put(string $path, mixed $content): string {
+    public function put(string $path, mixed $content): string
+    {
         if (!is_dir($this->storageDirectory)) {
             mkdir($this->storageDirectory);
         }
@@ -54,7 +57,7 @@ class DiskFileStorage implements FileStorageDriver {
 
         if (count($directories) > 0) {
             $dir = $this->storageDirectory . "/" . implode("/", $directories);
-            mkdir($dir, recursive: true);
+            @mkdir($dir, recursive: true);
         }
 
         file_put_contents("$dir/$file", $content);

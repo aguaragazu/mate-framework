@@ -4,37 +4,19 @@ namespace Mate\Validation;
 
 use Mate\Validation\Exceptions\ValidationException;
 
-/**
- * Validates given data or returns with errors if any.
- */
-class Validator {
-    /**
-     * Data to be validated.
-     *
-     * @var array
-     */
-    private array $data;
+class Validator
+{
+    protected array $data;
 
-    /**
-     * Create a new validator instances.
-     *
-     * @param array $data Data to be validated.
-     */
-    public function __construct(array $data) {
+    public function __construct(array $data)
+    {
         $this->data = $data;
     }
 
-    /**
-     * Get validated data.
-     *
-     * @param array $validationRules Rules to be applied.
-     * @param array $messages Override default messages for specific rules.
-     * @return array
-     * @throws ValidationException if validation does not pass.
-     */
-    public function validate(array $validationRules, array $messages = []) {
-        $errors = [];
+    public function validate(array $validationRules, array $messages = []): array
+    {
         $validated = [];
+        $errors = [];
         foreach ($validationRules as $field => $rules) {
             if (!is_array($rules)) {
                 $rules = [$rules];
@@ -52,7 +34,7 @@ class Validator {
             if (count($fieldUnderValidationErrors) > 0) {
                 $errors[$field] = $fieldUnderValidationErrors;
             } else {
-                $validated[$field] = $this->data[$field];
+                $validated[$field] = $this->data[$field] ?? null;
             }
         }
 

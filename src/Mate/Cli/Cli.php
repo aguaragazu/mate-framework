@@ -4,6 +4,7 @@ namespace Mate\Cli;
 
 use Dotenv\Dotenv;
 use Mate\App;
+use Mate\Cli\Commands\KeyGenerate;
 use Mate\Cli\Commands\MakeController;
 use Mate\Cli\Commands\MakeMigration;
 use Mate\Cli\Commands\MakeModel;
@@ -11,54 +12,54 @@ use Mate\Cli\Commands\Migrate;
 use Mate\Cli\Commands\MigrateRollback;
 use Mate\Cli\Commands\Serve;
 use Mate\Config\Config;
-use Mate\Database\DB;
+use Mate\Database\Drivers\DatabaseDriver;
 use Mate\Database\Migrations\Migrator;
-use Mate\Providers\DatabaseDriverServiceProvider;
 use Symfony\Component\Console\Application;
 
-/**
- * Mate development command line interface.
- */
-class Cli {
-    /**
-     * Bootstrap CLI app.
-     *
-     * @param string $root
-     * @return self
-     */
-    public static function bootstrap(string $root): self {
-        App::setRoot($root);
-        Dotenv::createImmutable(App::getRoot())->load();
-        Config::load("$root/config");
+class Cli
+{
+    public static function bootstrap(string $root): self
+    {
+        App::$root = $root;
+        Dotenv::createImmutable($root)->load();
+        Config::load($root . "/config");
 
-        (new DatabaseDriverServiceProvider())->registerServices();
-        DB::connect(config("database"));
+        foreach (config("providers.cli") as $provider) {
+            (new $provider())->registerServices();
+        }
+
+        app(DatabaseDriver::class)->connect(
+            config("database.connection"),
+            config("database.host"),
+            config("database.port"),
+            config("database.database"),
+            config("database.username"),
+            config("database.password"),
+        );
 
         singleton(
             Migrator::class,
             fn () => new Migrator(
                 "$root/database/migrations",
-                "$root/resources/templates"
+                resourcesDirectory() . "/templates",
+                app(DatabaseDriver::class)
             )
         );
 
         return new self();
     }
 
-    /**
-     * Run CLI app.
-     *
-     * @return void
-     */
-    public function run() {
+    public function run()
+    {
         $cli = new Application("Mate");
 
         $cli->addCommands([
-            new MakeController(),
             new MakeMigration(),
-            new MakeModel(),
             new Migrate(),
             new MigrateRollback(),
+            new MakeModel(),
+            new MakeController(),
+            new KeyGenerate(),
             new Serve(),
         ]);
 

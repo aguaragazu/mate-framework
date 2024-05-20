@@ -2,17 +2,8 @@
 
 namespace Mate\Database\Migrations;
 
-/**
- * Database migration.
- */
-interface Migration {
-    /**
-     * Run migration.
-     */
+interface Migration
+{
     public function up();
-
-    /**
-     * Reverse migration.
-     */
     public function down();
 }

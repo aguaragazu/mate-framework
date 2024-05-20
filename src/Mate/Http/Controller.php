@@ -2,30 +2,28 @@
 
 namespace Mate\Http;
 
-/**
- * HTTP Controller.
- */
-class Controller {
+class Controller
+{
     /**
-     * View layout.
-     */
-    public ?string $layout = null;
-
-    /**
-     * Middleware behind this controller.
+     * HTTP middlewares.
      *
      * @var \Mate\Http\Middleware[]
      */
-    public array $middlewares = [];
+    protected array $middlewares = [];
 
     /**
-     * Register middlewares.
+     * Get all HTTP middlewares for this route.
      *
-     * @param string[]
+     * @return \Mate\Http\Middleware[]
      */
-    protected function middlewares(array $middlewares) {
-        foreach ($middlewares as $class) {
-            $this->middlewares[] = new $class();
-        }
+    public function middlewares(): array
+    {
+        return $this->middlewares;
+    }
+
+    public function setMiddlewares(array $middlewares): self
+    {
+        $this->middlewares = array_map(fn ($middleware) => new $middleware(), $middlewares);
+        return $this;
     }
 }

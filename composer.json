@@ -4,15 +4,19 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Mate\\": "./src/Mate/"
+            "Mate\\": "./src/Mate/",
+            "Mate\\Support\\": [
+                "src/Collections/"
+            ]
         },
         "files": [
-            "./src/Mate/Helpers/app.php",
-            "./src/Mate/Helpers/array.php",
-            "./src/Mate/Helpers/auth.php",
-            "./src/Mate/Helpers/http.php",
-            "./src/Mate/Helpers/session.php",
-            "./src/Mate/Helpers/string.php"
+            "src/Helpers/app.php",
+            "src/Helpers/http.php",
+            "src/Helpers/string.php",
+            "src/Helpers/session.php",
+            "src/Helpers/auth.php",
+            "src/Helpers/support.php",
+            "src/Helpers/collection.php"
         ]
     },
     "authors": [
@@ -22,16 +26,44 @@
         }
     ],
     "require": {
-        "vlucas/phpdotenv": "^5.4"
+        "vlucas/phpdotenv": "^5.4",
+        "symfony/console": "^6.1",
+        "firebase/php-jwt": "^6.10",
+        "brick/math": "^0.10.2",
+        "egulias/email-validator": "^4.0",
+        "fruitcake/php-cors": "^1.3",
+        "ext-hash": "*",
+        "ext-tokenizer": "*",
+        "ext-mbstring": "*",
+        "ext-openssl": "*",
+        "ext-session": "*",
+        "ext-filter": "*",
+        "ext-ctype": "*",
+        "nunomaduro/termwind": "^1.15",
+        "ramsey/uuid": "^4.7",
+        "nesbot/carbon": "^3.3",
+        "symfony/error-handler": "^6.4",
+        "symfony/finder": "^6.4",
+        "symfony/http-foundation": "^6.4",
+        "symfony/http-kernel": "^6.4",
+        "symfony/mailer": "^6.4",
+        "symfony/mime": "^6.4",
+        "symfony/polyfill-php83": "^1.28",
+        "symfony/process": "^6.4",
+        "symfony/routing": "^6.4",
+        "symfony/uid": "^6.4",
+        "symfony/var-dumper": "^6.4"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5",
+        "friendsofphp/php-cs-fixer": "^3.8",
+        "fakerphp/faker": "^1.23",
+        "symfony/var-dumper": "^6.4"
     },
     "autoload-dev": {
         "psr-4": {
             "Mate\\Tests\\": "./tests"
         }
-    },
-    "require-dev": {
-        "friendsofphp/php-cs-fixer": "^3.8",
-        "phpunit/phpunit": "^9.5"
     },
     "scripts": {
         "php-cs-fixer": "php-cs-fixer fix --diff",

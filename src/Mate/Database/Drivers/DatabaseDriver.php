@@ -2,41 +2,54 @@
 
 namespace Mate\Database\Drivers;
 
-/**
- * Database driver.
- */
-interface DatabaseDriver {
-    /**
-     * Create a connection to the database.
-     *
-     * @param string $protocol
-     * @param string $host
-     * @param int $port
-     * @param string $database
-     * @param string $username
-     * @param string $password
-     *
-     */
+use Mate\Database\Database;
+
+interface DatabaseDriver
+{
     public function connect(
         string $protocol,
         string $host,
         int $port,
-        ?string $database,
+        string $database,
         string $username,
         string $password
-    ): self;
+    ): object;
 
-    /**
-     * Close connection.
-     */
+    public function table(Database|string $table, ?string $as = null): Database;
+
+    public function lastInsertId(): int;
+
     public function close();
 
-    /**
-     * Execute a statement and return the response.
-     *
-     * @param string $statement.
-     * @param array $bind Values to be replaced in the statement.
-     * @return mixed statement result.
-     */
-    public function statement(string $statement, array $bind = []): mixed;
+    public function query(): Database;
+
+    public function error(): string;
+
+    public function errorCode(): int;
+
+    public function errorMessage(): string;
+
+    public function escape(string $string);
+
+    public function affectedRows(): int;
+
+    public function beginTransaction(): void ;
+
+    public function commit(): void ;
+
+    public function rollback(): void ;
+
+    public function select($query, $bind = []): mixed;
+    
+    public function selectOne($query, $bind = []): mixed;
+    
+    public function insert($query, $bind = []): bool;
+
+    public function update($query, $bind = []): int;
+
+    public function delete($query, $bind = []): int;
+
+    public function statement(string $query, array $bind = []): bool;
+
+    public function affectingStatement(string $query, array $bind = []): mixed;
 }

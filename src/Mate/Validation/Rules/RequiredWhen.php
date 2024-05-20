@@ -4,7 +4,8 @@ namespace Mate\Validation\Rules;
 
 use Mate\Validation\Exceptions\RuleParseException;
 
-class RequiredWhen implements ValidationRule {
+class RequiredWhen implements ValidationRule
+{
     /**
      * Instantiate required when rule.
      *
@@ -22,11 +23,13 @@ class RequiredWhen implements ValidationRule {
         $this->compareWith = $compareWith;
     }
 
-    public function message(): string {
+    public function message(): string
+    {
         return "This field is required when $this->otherField $this->operator $this->compareWith";
     }
 
-    public function isValid($field, &$data): bool {
+    public function isValid($field, $data): bool
+    {
         if (!array_key_exists($this->otherField, $data)) {
             return false;
         }
@@ -37,7 +40,7 @@ class RequiredWhen implements ValidationRule {
             "<" => $data[$this->otherField] < floatval($this->compareWith),
             ">=" => $data[$this->otherField] >= floatval($this->compareWith),
             "<=" => $data[$this->otherField] <= floatval($this->compareWith),
-            default => throw new RuleParseException("Unknown required when operator: $this->operator")
+            default => throw new RuleParseException("Unknown required_when operator: $this->operator"),
         };
 
         return !$isRequired || isset($data[$field]) && $data[$field] != "";

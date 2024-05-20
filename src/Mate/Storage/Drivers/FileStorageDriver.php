@@ -5,7 +5,8 @@ namespace Mate\Storage\Drivers;
 /**
  * File storage driver.
  */
-interface FileStorageDriver {
+interface FileStorageDriver
+{
     /**
      * Store file.
      *

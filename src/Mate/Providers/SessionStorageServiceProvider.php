@@ -2,13 +2,15 @@
 
 namespace Mate\Providers;
 
-use Mate\Session\Storage\NativeStorage;
-use Mate\Session\Storage\SessionStorage;
+use Mate\Session\PhpNativeSessionStorage;
+use Mate\Session\SessionStorage;
 
-class SessionStorageServiceProvider {
-    public function registerServices() {
+class SessionStorageServiceProvider implements ServiceProvider
+{
+    public function registerServices()
+    {
         match (config("session.storage", "native")) {
-            "native" => singleton(SessionStorage::class, NativeStorage::class),
+            "native" => singleton(SessionStorage::class, PhpNativeSessionStorage::class),
         };
     }
 }

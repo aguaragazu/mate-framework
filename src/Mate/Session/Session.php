@@ -2,28 +2,14 @@
 
 namespace Mate\Session;
 
-use Mate\Session\Storage\NativeStorage;
-use Mate\Session\Storage\SessionStorage;
-use Mate\Singleton;
-
-/**
- * HTTP Session.
- */
-class Session {
-    /**
-     * Storage controller.
-     */
+class Session
+{
     protected SessionStorage $storage;
 
-    /**
-     * Session flash key.
-     */
     public const FLASH_KEY = '_flash';
 
-    /**
-     * Initialize session.
-     */
-    public function __construct(SessionStorage $storage) {
+    public function __construct(SessionStorage $storage)
+    {
         $this->storage = $storage;
         $this->storage->start();
 
@@ -32,93 +18,58 @@ class Session {
         }
     }
 
-    /**
-     * Handle flash data before destroying session.
-     */
-    public function __destruct() {
+    public function __destruct()
+    {
         foreach ($this->storage->get(self::FLASH_KEY)['old'] as $key) {
-            $this->remove($key);
+            $this->storage->remove($key);
         }
         $this->ageFlashData();
         $this->storage->save();
     }
 
-    /**
-     * Prepare session data to be removed for the next request.
-     */
-    public function ageFlashData() {
+    public function ageFlashData()
+    {
         $flash = $this->storage->get(self::FLASH_KEY);
         $flash['old'] = $flash['new'];
         $flash['new'] = [];
         $this->storage->set(self::FLASH_KEY, $flash);
     }
 
-    /**
-     * Flash key - value to current session.
-     *
-     * @param string $key
-     * @param mixed $value
-     * @return $this
-     */
-    public function flash(string $key, $value): self {
+    public function flash(string $key, mixed $value)
+    {
         $this->storage->set($key, $value);
         $flash = $this->storage->get(self::FLASH_KEY);
         $flash['new'][] = $key;
         $this->storage->set(self::FLASH_KEY, $flash);
-
-        return $this;
     }
 
-    /**
-     * Session ID.
-     */
-    public function id(): string {
+    public function id(): string
+    {
         return $this->storage->id();
     }
 
-    /**
-     * Check if session has `$key`.
-     *
-     * @param string $key
-     * @return bool
-     */
-    public function has(string $key): bool {
-        return $this->storage->has($key);
-    }
-
-    /**
-     * Get value for `$key` or default.
-     *
-     * @param string $key
-     * @param mixed $default
-     */
-    public function get(string $key, $default = null): mixed {
+    public function get(string $key, $default = null)
+    {
         return $this->storage->get($key, $default);
     }
 
-    /**
-     * Set key - value.
-     *
-     * @param string $key
-     * @param mixed $value
-     */
-    public function set(string $key, mixed $value) {
-        $this->storage->set($key, $value);
+    public function set(string $key, mixed $value)
+    {
+        return $this->storage->set($key, $value);
     }
 
-    /**
-     * Remov key from session.
-     *
-     * @param string $key
-     */
-    public function remove(string $key) {
-        $this->storage->remove($key);
+    public function has(string $key): bool
+    {
+        return $this->storage->has($key);
     }
 
-    /**
-     * Destroy session.
-     */
-    public function destroy() {
-        $this->storage->destroy();
+    public function remove(string $key)
+    {
+        return $this->storage->remove($key);
+    }
+
+    public function destroy()
+    {
+        return $this->storage->destroy();
     }
 }

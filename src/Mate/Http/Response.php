@@ -2,196 +2,164 @@
 
 namespace Mate\Http;
 
-/**
- * HTTP Response that will be sent to the client.
- */
-class Response {
-    /**
-     * Response content.
-     *
-     * @var ?string
-     */
-    protected ?string $content = null;
+use Mate\View\View;
 
+/**
+ * HTTP response that will be sent to the client.
+ */
+class Response
+{
     /**
-     * HTTP Response status code.
+     * Response HTTP status code.
      *
-     * @var int
+     * @var integer
      */
     protected int $status = 200;
 
     /**
-     * HTTP headers.
+     * Response HTTP headers.
+     *
+     * @var array
      */
     protected array $headers = [];
 
     /**
-     * Set the response HTTP status code.
+     * Response content.
      *
-     * @param int $status
-     * @return $this
+     * @var string|null
      */
-    public function setStatus(int $status): self {
-        $this->status = $status;
+    protected ?string $content = null;
 
+    /**
+     * Get response HTTP status code.
+     *
+     * @return integer
+     */
+    public function status(): int
+    {
+        return $this->status;
+    }
+
+    /**
+     * Set the HTTP status code for this response.
+     *
+     * @param integer $status
+     * @return self
+     */
+    public function setStatus(int $status): self
+    {
+        $this->status = $status;
         return $this;
     }
 
     /**
-     * Set HTTP header, or override existing one.
+     * Get response HTTP headers.
+     *
+     * @return array<string, string>
+     */
+    public function headers(string $key = null): array|string|null
+    {
+        if (is_null($key)) {
+            return $this->headers;
+        }
+
+        return $this->headers[strtolower($key)] ?? null;
+    }
+
+    /**
+     * Set HTTP header `$header` to `$value`.
      *
      * @param string $header
      * @param string $value
-     * @return $this
+     * @return self
      */
-    public function setHeader(string $header, string $value): self {
-        $this->headers[$header] = $value;
-
+    public function setHeader(string $header, string $value): self
+    {
+        $this->headers[strtolower($header)] = $value;
         return $this;
     }
 
     /**
-     * Remove previously set header.
-     * @param string header
+     * Remove the given `$header` from the response.
+     *
+     * @param string $header
+     * @return void
      */
-    public function removeHeader(string $header) {
-        if (array_key_exists($header, $this->headers)) {
-            unset($this->headers[$header]);
-        }
+    public function removeHeader(string $header)
+    {
+        unset($this->headers[strtolower($header)]);
     }
 
     /**
-     * Set HTTP content type ("text/html", "application/json", ...).
+     * Set the `"Content-Type"` header for this response.
      *
-     * @param string $contentType
-     * @return $this
+     * @param string $value
+     * @return self
      */
-    public function setContentType(string $contentType): self {
-        return $this->setHeader("Content-Type", $contentType);
-    }
-
-    /**
-     * Set response content.
-     *
-     * @param string $content
-     * @return $this
-     */
-    public function setContent(string $content): self {
-        $this->content = $content;
-
+    public function setContentType(string $value): self
+    {
+        $this->setHeader("Content-Type", $value);
         return $this;
     }
 
     /**
-     * Flash errors into session.
+     * Get the response content.
      *
-     * @param array $errors
-     * @param int $status
-     * @return $this
+     * @return string|null
      */
-    public function withErrors(array $errors, int $status = 400): self {
-        $this->setStatus($status);
-        session()
-            ->flash('errors', $errors)
-            ->flash('old', request()->data());
-
-        return $this;
-    }
-
-    /**
-     * Check if the response has any content.
-     */
-    public function hasContent(): bool {
-        return $this->content != null;
-    }
-
-    /**
-     * Get the content of this response.
-     *
-     * @return ?string
-     */
-    public function content(): ?string {
+    public function content(): ?string
+    {
         return $this->content;
     }
 
     /**
-     * Send the response headers.
+     * Set the response content.
+     *
+     * @param string $content
+     * @return self
      */
-    public function sendHeaders() {
-        http_response_code($this->status);
-        foreach ($this->headers as $header => $value) {
-            header("$header: $value");
-        }
-    }
-
-    /**
-     * Send response content.
-     */
-    public function sendContent() {
-        echo $this->content();
-    }
-
-    /**
-     * Check HTTP headers before sending.
-     */
-    public function prepare(): self {
-        if ($this->content == null) {
-            $this->removeHeader("Content-Type");
-            $this->removeHeader("Content-Length");
-        }
-
+    public function setContent(string $content): self
+    {
+        $this->content = $content;
         return $this;
     }
 
     /**
-     * Write HTTP headers and response content.
+     * Prepare the response to be sent to the client.
+     *
+     * @return void
      */
-    public function send() {
-        $this->prepare();
-        $this->sendHeaders();
-        $this->sendContent();
+    public function prepare()
+    {
+        if (is_null($this->content)) {
+            $this->removeHeader("Content-Type");
+            $this->removeHeader("Content-Length");
+        } else {
+            $this->setHeader("Content-Length", strlen($this->content));
+        }
     }
 
     /**
-     * Create a new response preconfigured to return a rendered template.
+     * Create a new JSON response.
      *
-     * @param string $view
-     * @param array $params
-     * @param ?string $layout
+     * @param array $data
      * @return self
      */
-    public static function view(
-        string $view,
-        array $params = [],
-        ?string $layout = null
-    ): self {
-        $layout ??= app()->controller?->layout;
-        $content = app()->view->render($view, $params, $layout);
-
-        return (new self())
-            ->setContentType("text/html")
-            ->setContent($content);
-    }
-
-    /**
-     * Create a new respone preconfigured to return JSON content.
-     *
-     * @param array $json
-     * @return self
-     */
-    public static function json(array $json): self {
+    public static function json(array $data): self
+    {
         return (new self())
             ->setContentType("application/json")
-            ->setContent(json_encode($json));
+            ->setContent(json_encode($data));
     }
 
     /**
-     * Create a new respone preconfigured to return plain text content.
+     * Create a new plain text response.
      *
      * @param string $text
      * @return self
      */
-    public static function text(string $text): self {
+    public static function text(string $text): self
+    {
         return (new self())
             ->setContentType("text/plain")
             ->setContent($text);
@@ -200,12 +168,31 @@ class Response {
     /**
      * Create a new redirect response.
      *
-     * @param string $route
+     * @param string $uri
      * @return self
      */
-    public static function redirect(string $route): self {
+    public static function redirect(string $uri): self
+    {
         return (new self())
             ->setStatus(302)
-            ->setHeader("Location", $route);
+            ->setHeader("Location", $uri);
+    }
+
+    public static function view(string $view, array $params = [], string $layout = null): self
+    {
+        $content = app(View::class)->render($view, $params, $layout);
+
+        return (new self())
+            ->setContentType("text/html")
+            ->setContent($content);
+    }
+
+    public function withErrors(array $errors, int $status = 400): self
+    {
+        $this->setStatus($status);
+        session()->flash('_errors', $errors);
+        session()->flash('_old', request()->data());
+
+        return $this;
     }
 }

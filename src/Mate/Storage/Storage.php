@@ -7,7 +7,8 @@ use Mate\Storage\Drivers\FileStorageDriver;
 /**
  * File storage utilities.
  */
-class Storage {
+class Storage
+{
     /**
      * Put file in the storage directory.
      *
@@ -15,7 +16,8 @@ class Storage {
      * @param mixed $content
      * @return string URL of the file.
      */
-    public static function put(string $path, mixed $content): string {
+    public static function put(string $path, mixed $content): string
+    {
         return app(FileStorageDriver::class)->put($path, $content);
     }
 }

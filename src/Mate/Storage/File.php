@@ -5,7 +5,8 @@ namespace Mate\Storage;
 /**
  * File helper.
  */
-class File {
+class File
+{
     /**
      * Instantiate new file.
      *
@@ -14,13 +15,13 @@ class File {
      * @param string $type
      */
     public function __construct(
-        private string $path,
         private mixed $content,
-        private string $type = "image"
+        private string $type,
+        private string $originalName,
     ) {
-        $this->path = $path;
         $this->content = $content;
         $this->type = $type;
+        $this->originalName = $originalName;
     }
 
     /**
@@ -28,7 +29,8 @@ class File {
      *
      * @return boolean
      */
-    public function isImage(): bool {
+    public function isImage(): bool
+    {
         return str_starts_with($this->type, "image");
     }
 
@@ -37,10 +39,12 @@ class File {
      *
      * @return string|null
      */
-    public function imageType(): ?string {
+    public function extension(): ?string
+    {
         return match ($this->type) {
             "image/jpeg" => "jpeg",
             "image/png" => "png",
+            "application/pdf" => "pdf",
             default => null,
         };
     }
@@ -50,7 +54,10 @@ class File {
      *
      * @return string URL.
      */
-    public function store(?string $path = null): string {
-        return Storage::put($path ?? $this->path, $this->content);
+    public function store(?string $directory = null): string
+    {
+        $file = uniqid() . $this->extension();
+        $path = is_null($directory) ? $file : "$directory/$file";
+        return Storage::put($path, $this->content);
     }
 }

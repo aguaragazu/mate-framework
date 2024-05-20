@@ -4,40 +4,51 @@ namespace Mate\Auth;
 
 use Mate\Auth\Authenticators\Authenticator;
 use Mate\Database\Model;
+use Mate\Http\Request;
 
-/**
- * Authenticatable model.
- */
-class Authenticatable extends Model {
-    /**
-     * Check if this instance is authenticated.
-     *
-     * @return bool
-     */
-    public function isAuthenticated(): bool {
-        return app(Authenticator::class)->isAuthenticated($this);
+class Authenticatable extends Model
+{
+    public function id(): int|string
+    {
+        return $this->{$this->primaryKey} ?? '';
     }
 
-    /**
-     * Authenticatable ID.
-     *
-     * @return int
-     */
-    public function id(): int {
-        return $this->{$this->primaryKey};
-    }
-
-    /**
-     * Authenitcate.
-     */
-    public function login() {
+    public function login()
+    {
         app(Authenticator::class)->login($this);
     }
 
-    /**
-     * Make this instance unauthenticated.
-     */
-    public function logout() {
+    public function logout()
+    {
         app(Authenticator::class)->logout($this);
+    }
+
+    public function isAuthenticated()
+    {
+        app(Authenticator::class)->isAuthenticated($this);
+    }
+
+    public function user()
+    {
+        return app(Authenticator::class)->user($this);
+    }
+
+    public function jsonSerialize(): mixed
+    {
+        return [
+            'id' => $this->id(),
+            'name' => $this->name,
+            'email' => $this->email,
+        ];
+    }
+
+    public function __toString()
+    {
+        return $this->name;
+    }
+
+    public function toArray(?Request $request = null): array
+    {
+        return $this->jsonSerialize();
     }
 }

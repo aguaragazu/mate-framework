@@ -4,121 +4,65 @@ namespace Mate;
 
 use Dotenv\Dotenv;
 use Mate\Config\Config;
-use Mate\Database\DB;
-use Mate\Http\Controller;
-use Mate\Http\Exceptions\HttpNotFoundException;
+use Mate\Database\Drivers\DatabaseDriver;
+use Mate\Database\Model as DatabaseModel;
 use Mate\Http\HttpMethod;
+use Mate\Http\HttpNotFoundException;
 use Mate\Http\Request;
 use Mate\Http\Response;
 use Mate\Routing\Router;
-use Mate\Server\ServerData;
+use Mate\Server\Server;
 use Mate\Session\Session;
-use Mate\Session\Storage\SessionStorage;
+use Mate\Session\SessionStorage;
+use Mate\Support\Facades\Model;
 use Mate\Validation\Exceptions\ValidationException;
-use Mate\View\View;
 use Throwable;
 
-/**
- * App runtime.
- */
-class App {
-    /**
-     * The Laravel framework version.
-     *
-     * @var string
-     */
-    const VERSION = '1.0.0';
+class App
+{
+    public static string $root;
 
-    /**
-     * Root directory of the user source code.
-     */
-    private static string $ROOT;
-
-    private static $CONFIG;
-
-    /**
-     * Router instance.
-     */
     public Router $router;
 
-    /**
-     * Current HTTP request.
-     */
     public Request $request;
 
-    /**
-     * Controller handling current request.
-     */
-    public ?Controller $controller = null;
+    public Server $server;
 
-    /**
-     * Template engine used to render views.
-     */
-    public View $view;
-
-    /**
-     * Current session.
-     */
     public Session $session;
 
-    public static function getRoot(): string
+    public DatabaseDriver $database;
+
+    private array $registeredModules = [];
+
+    public static function bootstrap(string $root)
     {
-        if (!self::$ROOT) {
-            self::$ROOT = getcwd();
-        }
+        self::$root = $root;
 
-        return self::$ROOT;
-    }
+        $app = singleton(self::class);
 
-    public static function setRoot(string $root): void
-    {
-        self::$ROOT = $root;
-    }
-
-    public static function getConfig(): Config
-    {
-        if (!self::$CONFIG) {
-            self::$CONFIG = new Config(self::getRoot() . '/config');
-        }
-
-        return self::$CONFIG;
-    }
-
-    /**
-     * Create a new app instance.
-     *
-     * @param string $root Source code root directory.
-     * @return self
-     */
-    public static function bootstrap(string $root): self {
-        if (app(self::class)) {
-            return app(self::class);
-        }
-
-        self::setRoot($root);
-
-        return singleton(self::class)
+        return $app
             ->loadConfig()
-            ->runServiceProviders("boot")
+            ->runServiceProviders('boot')
             ->setHttpHandlers()
-            ->openConnections()
-            ->runServiceProviders("runtime");
+            ->setUpDatabaseConnection()
+            ->runServiceProviders('runtime');
+
+        // Register modules
+        // $app->scanModules($root . '/modules');
+        
+        return $app;
     }
 
-    /**
-     * Load Mate configuration.
-     */
-    protected function loadConfig() {
-        Dotenv::createImmutable(self::getRoot())->load();
-        Config::load(self::getRoot()."/config");
+    protected function loadConfig(): self
+    {
+        Dotenv::createImmutable(self::$root)->load();
+        Config::load(self::$root . "/config");
 
         return $this;
     }
 
-    /**
-     * Register container instances.
-     */
-    protected function runServiceProviders(string $type) {
+    protected function runServiceProviders(string $type): self
+    {
         foreach (config("providers.$type", []) as $provider) {
             $provider = new $provider();
             $provider->registerServices();
@@ -127,102 +71,102 @@ class App {
         return $this;
     }
 
-    /**
-     * Prepare request, response,
-     */
-    protected function setHttpHandlers() {
-        $this->request = singleton(Request::class, fn () => new Request(app(ServerData::class)));
+    protected function setHttpHandlers(): self
+    {
         $this->router = singleton(Router::class);
-        $this->view = app(View::class);
+        $this->server = app(Server::class);
+        $this->request = singleton(Request::class, function () {
+            $method = HttpMethod::from($_SERVER['REQUEST_METHOD']);
+            return new Request($method);
+        });
         $this->session = singleton(Session::class, fn () => new Session(app(SessionStorage::class)));
 
         return $this;
     }
 
-    /**
-     * Open database connections or other connections.
-     */
-    protected function openConnections() {
-        DB::connect(config("database"));
+    protected function setUpDatabaseConnection(): self
+    {
+        $this->database = app(DatabaseDriver::class);
+
+        $this->database->connect(
+            config("database.connection"),
+            config("database.host"),
+            config("database.port"),
+            config("database.database"),
+            config("database.username"),
+            config("database.password"),
+        );
+        
+        // Model::setConnection($this->database);
 
         return $this;
     }
 
-    /**
-     * Application environment (dev, prod, staging...).
-     *
-     * @return string|bool
-     */
-    public function env(?string $env = null): string|bool {
-        if (is_null($env)) {
-            return config("app.env");
-        }
-
-        return $env == config("app.env");
-    }
-
-    /**
-     * Set session variables or other parameters for the next request.
-     */
-    private function prepareParametersForNextRequest() {
+    protected function prepareNextRequest()
+    {
         if ($this->request->method() == HttpMethod::GET) {
-            $this->session->set('_previous', $this->request->path());
+            $this->session->set('_previous', $this->request->uri());
         }
     }
 
-    /**
-     * Kill the current process. If necessary, release resources here.
-     *
-     * @param \Mate\Http\Response $response
-     */
-    public function terminate(Response $response) {
-        $this->prepareParametersForNextRequest();
-        $response->send();
-        DB::close();
-        exit;
+    protected function terminate(Response $response)
+    {
+        $this->prepareNextRequest();
+        $this->server->sendResponse($response);
+        $this->database->close();
+        exit();
     }
 
-    /**
-     * Handle request and send response.
-     */
-    public function run() {
+    public function run()
+    {
         try {
-            $response = $this->router->resolve($this->request);
-            $this->terminate($response);
+            $this->terminate($this->router->resolve($this->request));
+        } catch (HttpNotFoundException $e) {
+            $this->abort(Response::text("Not found")->setStatus(404));
+        } catch (ValidationException $e) {
+            $this->abort(back()->withErrors($e->errors(), 422));
         } catch (Throwable $e) {
-            $this->handleError($e);
+            $response = json([
+                "error" => $e::class,
+                "message" => $e->getMessage(),
+                "trace" => $e->getTrace()
+            ]);
+
+            $this->abort($response->setStatus(500));
         }
     }
 
-    /**
-     * Respond with error.
-     *
-     * @param Throwable $e
-     */
-    private function handleError(Throwable $e) {
-        match (get_class($e)) {
-            ValidationException::class => $this->abort(back()->withErrors($e->errors())),
-            HttpNotFoundException::class => $this->abort(view("errors/404")->setStatus(404)),
-            default => $this->abort(view("errors/500", compact('e'), "error")->setStatus(500)),
-        };
-    }
-
-    /**
-     * Stop execution from any point.
-     *
-     * @param \Mate\Http\Response $response Response to send.
-     */
-    public function abort(Response $response) {
+    public function abort(Response $response)
+    {
         $this->terminate($response);
     }
 
-    /**
-     * Get the version number of the application.
-     *
-     * @return string
-     */
-    public function version()
+    public function scanModules(string $modulesDir): void
     {
-        return static::VERSION;
+        $modulesDir = rtrim($modulesDir, '/'); // Ensure no trailing slash
+
+        foreach (new \DirectoryIterator($modulesDir) as $fileInfo) {
+            if ($fileInfo->isDir() && $fileInfo->isReadable()) {
+                $moduleDir = $fileInfo->getPathname();
+                $this->registerModule($moduleDir);
+            }
+        }
+    }
+
+    public function getRegisteredModules(): array
+    {
+        return $this->registeredModules;
+    }
+
+    public function registerModule(string $moduleDir): void
+    {
+        if (!is_dir($moduleDir)) {
+            throw new \InvalidArgumentException("Invalid module directory: $moduleDir");
+        }
+
+        $moduleName = basename($moduleDir);
+        $this->registeredModules[$moduleName] = $moduleDir;
+
+        
     }
 }
