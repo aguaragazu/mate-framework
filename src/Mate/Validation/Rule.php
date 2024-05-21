@@ -4,12 +4,16 @@ namespace Mate\Validation;
 
 use Mate\Validation\Exceptions\RuleParseException;
 use Mate\Validation\Exceptions\UnknownRuleException;
+use Mate\Validation\Rules\Confirmed;
 use Mate\Validation\Rules\Email;
 use Mate\Validation\Rules\LessThan;
+use Mate\Validation\Rules\Max;
+use Mate\Validation\Rules\Min;
 use Mate\Validation\Rules\Number;
 use Mate\Validation\Rules\Required;
 use Mate\Validation\Rules\RequiredWhen;
 use Mate\Validation\Rules\RequiredWith;
+use Mate\Validation\Rules\Unique;
 use Mate\Validation\Rules\ValidationRule;
 use ReflectionClass;
 
@@ -24,6 +28,10 @@ class Rule
         Number::class,
         LessThan::class,
         Email::class,
+        Unique::class,
+        Confirmed::class,
+        Min::class,
+        Max::class,
     ];
 
     public static function loadDefaultRules()
@@ -72,6 +80,26 @@ class Rule
         return new LessThan($value);
     }
 
+    public static function unique(string $table, string $column = 'email'): ValidationRule
+    {
+        return new Unique($table, $column);
+    }
+
+    public static function confirmed(): ValidationRule
+    {
+        return new Confirmed();
+    }
+
+    public static function min(int $length): ValidationRule
+    {
+        return new Min($length);
+    }
+
+    public static function max(int $length): ValidationRule
+    {
+        return new Max($length);
+    }
+
     public static function requiredWhen(
         string $otherField,
         string $operator,
@@ -112,6 +140,7 @@ class Rule
 
     public static function from(string $str): ValidationRule
     {
+        
         if (strlen($str) == 0) {
             throw new RuleParseException("Can't parse empty string to rule");
         }

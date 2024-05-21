@@ -445,7 +445,7 @@ class Database
     /**
      * Set the table which the query is targeting.
      *
-     * @param  \Closure|\Mate\Database\Builder|string  $table
+     * @param  \Closure|\Mate\Database\Database|string  $table
      * @param  string|null  $as
      * @return $this
      */
@@ -604,8 +604,8 @@ class Database
      * @param  array  $request
      * @return void
      */
-    public function insert(array $request)
-    {
+    public function insert(array $values)
+    { 
         if (false === $this->checkTable()) {
             return false;
         }
@@ -614,19 +614,19 @@ class Database
             return true;
         }
 
-        if (!is_array(reset($values))) {
-            $values = [$values];
-        } else {
-            foreach ($values as $key => $value) {
-                ksort($value);
+        // if (!is_array(reset($values))) {
+        //     $values = [$values];
+        // } else {
+        //     foreach ($values as $key => $value) {
+        //         ksort($value);
 
-                $values[$key] = $value;
-            }
-        }
+        //         $values[$key] = $value;
+        //     }
+        // }
 
-        $this->parseValues($request);
+        $this->parseValues($values);
         $sql = $this->buildQuery(self::QUERY_INSERT);
-
+        
         return $this->connection->insert($sql);
     }
 
@@ -1422,10 +1422,10 @@ class Database
      */
     public function newModelInstance($attributes = [])
     {
-        return $this->model->newInstance($attributes)->setConnection(
-            $this->model->getConnection()
-
-        );
+        
+        $inst = new $this->model;
+        
+        return $inst->newInstance($attributes);
     }
 
     /**
@@ -1448,6 +1448,7 @@ class Database
     public function create(array $attributes = [])
     {
         return tap($this->newModelInstance($attributes), function ($instance) {
+            
             $instance->save();
         });
     }

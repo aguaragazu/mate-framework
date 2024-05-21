@@ -37,7 +37,6 @@ class Validator
                 $validated[$field] = $this->data[$field] ?? null;
             }
         }
-
         if (count($errors) > 0) {
             throw new ValidationException($errors);
         }

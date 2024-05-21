@@ -9,6 +9,7 @@ use Mate\Database\Database;
 use Mate\Database\Drivers\DatabaseDriver;
 use Mate\Database\Exception\JsonEncodingException;
 use Mate\Database\Exception\MassAssignmentException;
+use Mate\Database\Exception\RecordsNotFoundException;
 use Mate\Support\Arrayable;
 use Mate\Support\Str;
 use Mate\Support\Traits\ForwardsCalls;
@@ -273,9 +274,9 @@ abstract class Model implements Arrayable, ArrayAccess, JsonSerializable, String
 
         $model->exists = $exists;
 
-        $model->setConnection(
-            $this->getConnectionName()
-        );
+        // $model->setConnection(
+        //     $this->getConnectionName()
+        // );
 
         $model->setTable($this->getTable());
 
@@ -372,7 +373,6 @@ abstract class Model implements Arrayable, ArrayAccess, JsonSerializable, String
 
     public function newDatabaseBuilder()
     {
-        
         $db = new Database(app()->database);
         $db->table($this->getTable());
         $db->model(static::class);
@@ -682,40 +682,40 @@ abstract class Model implements Arrayable, ArrayAccess, JsonSerializable, String
     {
 
         $query = $this->newModelQuery();
+        $saved = $query->insert($this->attributes);
+        
+        
+        // // If the model already exists in the database we can just update our record
+        // // that is already in this database using the current IDs in this "where"
+        // // clause to only update this model. Otherwise, we'll just insert them.
+        // if ($this->exists) {
+        //     $saved = $this->isDirty() ?
+        //         $this->performUpdate($query) : true;
+        // }
 
-        // If the model already exists in the database we can just update our record
-        // that is already in this database using the current IDs in this "where"
-        // clause to only update this model. Otherwise, we'll just insert them.
-        if ($this->exists) {
-            $saved = $this->isDirty() ?
-                $this->performUpdate($query) : true;
-        }
+        // // If the model is brand new, we'll insert it into our database and set the
+        // // ID attribute on the model to the value of the newly inserted row's ID
+        // // which is typically an auto-increment value managed by the database.
+        // else {
+        //     $saved = $this->performInsert($query);
 
-        // If the model is brand new, we'll insert it into our database and set the
-        // ID attribute on the model to the value of the newly inserted row's ID
-        // which is typically an auto-increment value managed by the database.
-        else {
-            $saved = $this->performInsert($query);
-
-            if (
-                !$this->getConnectionName() &&
-                $connection = $query->getConnection()
-            ) {
-                $this->setConnection($connection->getName());
-            }
-        }
+        //     if (
+        //         !$this->getConnectionName() &&
+        //         $connection = $query->getConnection()
+        //     ) {
+        //         $this->setConnection($connection->getName());
+        //     }
+        // }
 
         // If the model is successfully saved, we need to do a few more things once
         // that is done. We will call the "saved" method here to run any actions
         // we need to happen after a model gets successfully saved right here.
-        if ($saved) {
-            $this->finishSave($options);
-        }
+        // if ($saved) {
+        //     $this->finishSave($options);
+        // }
 
         return $saved;
     }
-
-
 
     /**
      * Get a new query builder that doesn't have any global scopes or eager loading.
@@ -781,5 +781,21 @@ abstract class Model implements Arrayable, ArrayAccess, JsonSerializable, String
         return static::query()->with(
             is_string($relations) ? func_get_args() : $relations
         );
+    }
+
+    public static function resolveModelClass(string $table): string
+    {
+        // Asumimos que los nombres de las tablas están en plural y 
+        // los nombres de las clases de los modelos están en singular
+        $className = ucfirst(rtrim($table, 's'));
+
+        // Ruta del espacio de nombres del modelo
+        $modelClass = "App\\Models\\$className";
+
+        if (!class_exists($modelClass)) {
+            throw new RecordsNotFoundException("Model class for table '$table' not found.");
+        }
+
+        return $modelClass;
     }
 }
