@@ -388,4 +388,22 @@ class Request
 
         return $this;
     }
+
+    /**
+     * Filtra los datos de la solicitud para retornar solo 
+     * los elementos con las claves especificadas en $values.
+     * 
+     * @param array $values
+     * @return array
+     */
+    public function only(array $values)
+    {
+        return array_filter(
+            $this->data, 
+            function ($value) use ($values) {
+                return in_array($value, $values);
+            },
+            ARRAY_FILTER_USE_KEY
+        );
+    }
 }

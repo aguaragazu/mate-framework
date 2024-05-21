@@ -4,6 +4,7 @@ namespace Mate\Auth\Authenticators;
 use Firebase\JWT\JWT;
 use Mate\Auth\Authenticatable;
 use Exception;
+use Mate\Crypto\Bcrypt;
 use Mate\Http\Request;
 use Mate\Support\Facades\User;
 
@@ -20,17 +21,20 @@ class JwtAuthenticator implements Authenticator {
             'iat' => time(), // Tiempo en que el JWT fue emitido
             'exp' => time() + 3600, // Tiempo de expiración del token (1 hora)
             'sub' => $authenticatable->id(), // Sujeto del JWT
+            'data' => $authenticatable->getJwtIdentity(), // Data del Sujeto 
         ];
 
         return JWT::encode($payload, $this->key, 'HS256');
     }
 
     public function logout(Authenticatable $authenticatable) {
-        // El logout en JWT se maneja simplemente dejando que el token expire, o invalidándolo en el cliente.
+        // El logout en JWT se maneja simplemente dejando que el token expire, 
+        // o invalidándolo en el cliente.
     }
 
     public function isAuthenticated(Authenticatable $authenticatable): bool {
-        // Este método puede ser complicado porque los JWT no mantienen estado. Dejarlo sin implementar o repensar su lógica.
+        // Este método puede ser complicado porque los JWT no mantienen estado. 
+        // Dejarlo sin implementar o repensar su lógica.
         return false;
     }
 
@@ -66,4 +70,11 @@ class JwtAuthenticator implements Authenticator {
 
         return null;
     }
+
+    public function checkPassword($inputPassword, Authenticatable $authenticatable)
+    {
+        $hasher = new Bcrypt();
+        return $hasher->verify($inputPassword, $authenticatable->password);
+    }
+
 }

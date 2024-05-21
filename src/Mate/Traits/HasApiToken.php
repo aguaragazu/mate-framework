@@ -8,4 +8,8 @@ trait HasApiToken
     public function getToken() {
         return app(Authenticator::class)->login($this);
     }
+
+    public function checkPassword(string $password) {
+        return app(Authenticator::class)->checkPassword($password, $this);
+    }
 }

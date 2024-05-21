@@ -951,6 +951,18 @@ class Database
     }
 
     /**
+     * Set model
+     * @param  string $model Model
+     * @return void
+     */
+    public function model(string $model)
+    {
+        $this->model = $model;
+
+        return $this;
+    }
+
+    /**
      * SQL ESCAPE
      * @param  mixed $data
      * @return string
@@ -1172,32 +1184,20 @@ class Database
             // }
         // $this->selectCols = $columns ?? '';
         
+        
         if ($this->eagerRelations) {
             $this->loadRelations($result, $this->eagerRelations);
         }
 
         return collect($this->onceWithColumns($columns, function () {
             $sql = $this->buildQuery(self::QUERY_SELECT);
-            // dd('database get()', $sql, $this->connection, $this);
+            // $result = $this->connection->select($sql);
+            // dd('database get()', $sql, $this->connection, $this, $result);
             return $this->connection->select($sql);
         }));
     }
 
-    /**
-     * Get FIRST row
-     * @return array
-     */
-    public function first($columns = ['*'])
-    {
-        // if (method_exists($this, 'mapAttributes')) {
-        //     $this->connection->mapAttributes($this->get(1)[0]);
-        //     return $this;
-        // } else {
-        //     return $this->get(1)[0];
-        // }
-        // dd('Database->first(): ',$this->take(1)->get($columns), $this );
-        return $this->take(1)->get($columns)->first();
-    }
+    
 
     /**
      * Add a basic where clause to the query, and return the first result.
@@ -1210,16 +1210,17 @@ class Database
      */
     public function firstWhere($column, $operator = null, $value = null)
     {
-        if (func_num_args() == 2) {
-            $value = $operator;
-            $this->where([$column, $value]);
-        } else {
-            $this->where([$column, $operator, $value]);
+        $result = $this->where([$column, $operator, $value])->first();
+        
+        if ($result) {
+            $model = new $this->model;
+            foreach ($result as $key => $value) {
+                $model->$key = $result->{$key};
+            }
+            return $model;
         }
 
-        $sql = $this->buildQuery(self::QUERY_SELECT);
-        $result = $this->connection->select($sql);
-        return $result;
+        return null;
     }
 
     /**
@@ -1425,6 +1426,17 @@ class Database
             $this->model->getConnection()
 
         );
+    }
+
+    /**
+     * Create and return an un-saved model instance.
+     *
+     * @param  array  $attributes
+     * @return \Mate\Database\Model|static
+     */
+    public function make(array $attributes = [])
+    {
+        return $this->newModelInstance($attributes);
     }
 
     /**

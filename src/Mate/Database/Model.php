@@ -375,6 +375,7 @@ abstract class Model implements Arrayable, ArrayAccess, JsonSerializable, String
         
         $db = new Database(app()->database);
         $db->table($this->getTable());
+        $db->model(static::class);
         return $db;
     }
 

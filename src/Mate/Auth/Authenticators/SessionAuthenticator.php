@@ -25,4 +25,9 @@ class SessionAuthenticator implements Authenticator
     {
         return session()->get("_auth");
     }
+
+    public function checkPassword($inputPassword, $storedHash): bool
+    {
+        return password_verify($inputPassword, $storedHash);
+    }
 }
