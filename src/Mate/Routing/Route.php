@@ -305,6 +305,16 @@ class Route extends RoutingBase
         return app()->router->post($uri, $action, $model);
     }
 
+    public static function delete($uri, $action = null, $model = null)
+    {
+        return app()->router->delete($uri, $action, $model);
+    }
+
+    public static function put($uri, $action = null, $model = null)
+    {
+        return app()->router->put($uri, $action, $model);
+    }
+
     /**
      * Dynamically handle calls into the route registrar.
      *

@@ -6,17 +6,17 @@
         "psr-4": {
             "Mate\\": "./src/Mate/",
             "Mate\\Support\\": [
-                "src/Collections/"
+                "src/Mate/Collections/"
             ]
         },
         "files": [
-            "src/Helpers/app.php",
-            "src/Helpers/http.php",
-            "src/Helpers/string.php",
-            "src/Helpers/session.php",
-            "src/Helpers/auth.php",
-            "src/Helpers/support.php",
-            "src/Helpers/collection.php"
+            "src/Mate/Helpers/app.php",
+            "src/Mate/Helpers/http.php",
+            "src/Mate/Helpers/string.php",
+            "src/Mate/Helpers/session.php",
+            "src/Mate/Helpers/auth.php",
+            "src/Mate/Helpers/support.php",
+            "src/Mate/Helpers/collection.php"
         ]
     },
     "authors": [
